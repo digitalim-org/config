@@ -10,14 +10,19 @@
       block: 
         - name: Register rfkill bluetooth info
           shell: rfkill -J | jq '.[""][] | select(.type == "bluetooth")'
-          register: rfkill_bluetooth_info
+          register: rfkill_bluetooth_command
+          changed_when: false
 
-        - debug:
-            msg: "{{ rfkill_bluetooth_info | json_query(soft) }}" 
+        - name: Get soft-blocked status
+          set_fact: 
+            soft_status: "{{ rfkill_bluetooth_command.stdout | from_json | json_query('soft') }}" 
 
-        - fail:
+        - name: Get hard-blocked status
+          debug:
+            msg: "{{ rfkill_bluetooth_command.stdout | from_json | json_query('hard') }}" 
+          register: hard_status
 
         - name: Unblock bluetooth
+          when: soft_status == 'blocked'
           become: yes
           command: rfkill unblock bluetooth
-          when: "{{ rfkill_bluetooth_info | json_query(soft) }}"
