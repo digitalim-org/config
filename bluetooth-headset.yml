@@ -26,3 +26,48 @@
           when: soft_status == 'blocked'
           become: yes
           command: rfkill unblock bluetooth
+
+    - name: Install packages
+      become: yes
+      block:
+        - name: pulseaudio-alsa
+          pacman:
+            name: pulseaudio-alsa
+            update_cache: yes
+
+        - name: pulseaudio-bluetooth
+          pacman:
+            name: pulseaudio-bluetooth
+            update_cache: yes
+
+        - name: bluez-utils
+          pacman:
+            name: bluez-utils
+            update_cache: yes
+
+    - name: Get bluetooth systemctl status
+      block:
+        - name: Set is-active
+          shell: "systemctl is-active bluetooth"
+          register: systemctl_is_active
+          # For some reason uses non-zero exit codes when service is inactive
+          failed_when: false
+          changed_when: false
+
+        - name: Set is-enabled
+          shell: "systemctl is-enabled bluetooth"
+          register: systemctl_is_enabled
+          failed_when: false
+          changed_when: false
+
+    - name: Enable and start bluetoothctl
+      when: systemctl_is_active.stdout == 'inactive' or systemctl_is_enabled.stdout == 'disabled'
+      become: yes
+      block:
+        - name: Start bluetoothctl
+          when: systemctl_is_active.stdout == 'inactive'
+          shell: "systemctl start bluetooth"
+
+        - name: Enable bluetoothctl
+          when: systemctl_is_enabled.stdout == 'disabled'
+          shell: "systemctl enable bluetooth"
