@@ -24,3 +24,9 @@
             name: core.editor
             value: vim
             scope: global
+
+        - name: Set diff tool
+          git_config:
+            name: diff.tool
+            value: vimdiff
+            scope: global
