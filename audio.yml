@@ -1,0 +1,19 @@
+---
+- name: Install packages
+  hosts: localhost
+  gather_facts: yes
+  tasks:
+    - name: Install packages
+      become: yes
+      collections: 
+        - ansible.builtin
+      block:
+        - name: base-devel
+          package:
+            name: base-devel
+            state: present
+
+        - name: base-devel
+          package:
+            name: base-devel
+            state: present

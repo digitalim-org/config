@@ -1,0 +1,13 @@
+---
+- name: Create user
+  hosts: localhost
+  gather_facts: no
+  collections: 
+    - ansible.builtin
+  tasks:
+    - name: Create user pierre
+      user:
+        name: pierre
+        groups:
+          - video
+        generate_ssh_key: yes

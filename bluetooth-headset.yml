@@ -1,0 +1,23 @@
+---
+- name: Configure bluetooth headset
+  hosts: localhost
+  gather_facts: no
+  collections: 
+    - ansible.builtin
+    - community.general
+  tasks:
+    - name: Ensure bluetooth is not blocked by rfkill
+      block: 
+        - name: Register rfkill bluetooth info
+          shell: rfkill -J | jq '.[""][] | select(.type == "bluetooth")'
+          register: rfkill_bluetooth_info
+
+        - debug:
+            msg: "{{ rfkill_bluetooth_info | json_query(soft) }}" 
+
+        - fail:
+
+        - name: Unblock bluetooth
+          become: yes
+          command: rfkill unblock bluetooth
+          when: "{{ rfkill_bluetooth_info | json_query(soft) }}"

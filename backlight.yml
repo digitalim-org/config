@@ -1,0 +1,14 @@
+---
+- name: Configure backlight
+  hosts: localhost
+  gather_facts: yes
+  tasks:
+    - name: Install packages
+      become: yes
+      collections: 
+        - ansible.builtin
+      block:
+        - name: acpilight
+          package:
+            name: acpilight
+            state: present

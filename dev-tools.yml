@@ -1,0 +1,29 @@
+---
+- name: Install tools
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Install system packages
+      become: yes
+      collections: 
+        - community.general
+      block:
+        - name: jq
+          pacman:
+            name: jq
+            update_cache: yes
+
+        - name: pip
+          pacman:
+            name: python-pipenv
+            update_cache: yes
+
+    - name: Install Python modules
+      collections: 
+        - ansible.builtin
+      block:
+        - name: pip
+          pip:
+            name:
+              - virtualenv
+              - jmespath
