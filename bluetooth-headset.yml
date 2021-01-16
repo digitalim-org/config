@@ -7,6 +7,7 @@
     - community.general
   tasks:
     - name: Ensure bluetooth is not blocked by rfkill
+      tags: setup
       block: 
         - name: Register rfkill bluetooth info
           shell: rfkill -J | jq '.[""][] | select(.type == "bluetooth")'
@@ -28,6 +29,7 @@
           command: rfkill unblock bluetooth
 
     - name: Install packages
+      tags: setup
       become: yes
       block:
         - name: pulseaudio-alsa
@@ -46,6 +48,7 @@
             update_cache: yes
 
     - name: Get bluetooth systemctl status
+      tags: setup
       block:
         - name: Set is-active
           shell: "systemctl is-active bluetooth"
@@ -61,6 +64,7 @@
           changed_when: false
 
     - name: Enable and start bluetoothctl
+      tags: setup
       when: systemctl_is_active.stdout == 'inactive' or systemctl_is_enabled.stdout == 'disabled'
       become: yes
       block:
@@ -71,3 +75,164 @@
         - name: Enable bluetoothctl
           when: systemctl_is_enabled.stdout == 'disabled'
           shell: "systemctl enable bluetooth"
+
+    - name: Enable and start bluetoothctl
+      tags: setup
+      when: systemctl_is_active.stdout == 'inactive' or systemctl_is_enabled.stdout == 'disabled'
+      become: yes
+      block:
+        - name: Start bluetoothctl
+          when: systemctl_is_active.stdout == 'inactive'
+          shell: "systemctl start bluetooth"
+
+        - name: Enable bluetoothctl
+          when: systemctl_is_enabled.stdout == 'disabled'
+          shell: "systemctl enable bluetooth"
+
+
+    - name: Show devices
+      tags: 
+        - setup
+        - devices
+      block:
+        - name: Get devices
+          shell: "bluetoothctl devices"
+          changed_when: false
+          register: bluetooth_devices
+
+        - name: Show devices
+          debug:
+            msg: "{{ bluetooth_devices.stdout_lines }}"
+
+- name: Connect to device
+  hosts: localhost
+  gather_facts: no
+  collections: 
+    - ansible.builtin
+    - community.general
+  vars_prompt:
+    - name: device
+      prompt: "Enter device: "
+      private: no
+  tasks:
+    - name: Set Bluetooth SSP on (no need to ask for PIN code)
+      block:
+        - name: Check if already on
+          shell: 'btmgmt info | grep "current settings" | grep ssp'
+          register: btmgmt_ssp_status
+          failed_when: false
+          changed_when: false
+
+        - name: Turn it on
+          when: btmgmt_ssp_status.rc != 0
+          become: yes
+          shell: "btmgmt ssp on"
+
+    - name: Get controller info
+      shell: bluetoothctl show
+      register: bluetoothctl_controller_info
+      changed_when: false
+
+    - name: Configure controller
+      block: 
+      - name: Power
+        block:
+        - name: Check power
+          shell: 'bluetoothctl show | grep Powered: | cut -d" " -f2'
+          register: bluetoothctl_power_status
+          changed_when: false
+
+        - name: Set power
+          when: bluetoothctl_power_status.stdout == 'no'
+          shell: 'bluetoothctl power on'
+
+      - name: Discoverable
+        block:
+        - name: Check discoverable
+          shell: 'bluetoothctl show | grep Discoverable: | cut -d" " -f2'
+          register: bluetoothctl_discoverable_status
+          changed_when: false
+
+        - name: Set discoverable
+          when: bluetoothctl_discoverable_status.stdout == 'no'
+          shell: 'bluetoothctl discoverable on'
+
+      - name: Pairable
+        block:
+        - name: Check pairable
+          shell: 'bluetoothctl show | grep Pairable: | cut -d" " -f2'
+          register: bluetoothctl_pairable_status
+          changed_when: false
+
+        - name: Set pairable
+          when: bluetoothctl_pairable_status.stdout == 'no'
+          shell: 'bluetoothctl pairable on'
+
+    - name: IMPORTANT
+      debug:
+        msg: MAKE SURE DEVICE IS ON
+
+    - name: IMPORTANT
+      debug:
+        msg: MAKE SURE DEVICE IS IN PAIRING MODE
+
+    - name: pause
+      shell: sleep 10
+
+    - name: Remove first
+      tags: 
+        - scan
+        - trust
+        - pair
+        - connect
+      shell: 'bluetoothctl remove {{ device }}'
+      failed_when: false
+
+    - name: Scan
+      tags: scan
+      shell: '(bluetoothctl scan on &)'
+      changed_when: false
+
+    - name: Trust device
+      tags: trust
+      block: 
+        - name: Check if device is trusted
+          shell: "bluetoothctl info {{ device }} | grep Trusted: | cut -d' ' -f2"
+          register: bluetoothctl_trusted_status
+          changed_when: false
+
+        - name: Trust
+          when: bluetoothctl_trusted_status.stdout == 'no'
+          shell: 'bluetoothctl trust {{ device }}'
+
+    - name: Pair with device
+      tags: pair
+      block: 
+        - name: Check if device is paired
+          when: false
+          shell: "bluetoothctl info {{ device }} | grep Paired: | cut -d' ' -f2"
+          register: bluetoothctl_paired_status
+          changed_when: false
+
+        - name: Pair
+          #when: bluetoothctl_paired_status.stdout == 'no'
+          block:
+            - name: Actually pair
+              shell: 'timeout 5 bluetoothctl pair {{ device }}'
+              register: paired_status
+
+    - name: Connect with device
+      tags: connect
+      block: 
+        - name: Check if device is connected
+          when: false
+          shell: "bluetoothctl info {{ device }} | grep Connected: | cut -d' ' -f2"
+          register: bluetoothctl_connected_status
+          changed_when: false
+
+        - name: Connect
+          #when: bluetoothctl_connected_status.stdout == 'no'
+          block:
+            - name: Connect
+              shell: 'timeout 5 bluetoothctl connect {{ device }}'
+              register: connected_status
