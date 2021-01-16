@@ -3,6 +3,16 @@
   hosts: localhost
   gather_facts: no
   tasks:
+    - name: Install helpful tools
+      become: yes
+      collections: 
+        - community.general
+      block: 
+        - name: xclip
+          pacman:
+            name: xclip
+            update_cache: yes
+
     - name: Install system packages
       become: yes
       collections: 
