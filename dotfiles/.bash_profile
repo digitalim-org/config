@@ -13,7 +13,7 @@ if [ -f "$HOME/.bashrc" ] ; then
 fi
 
 #export JAVA_HOME="/Library/Java/JavaVirtualMachines/openjdk-14.0.1.jdk/Contents/Home"
-export JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
+#export JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
 
 export RED="\[\033[0;31m\]"
 export LIGHT_RED="\[\033[0;91m\]"
