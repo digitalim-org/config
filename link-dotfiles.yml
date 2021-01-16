@@ -1,0 +1,26 @@
+---
+- name: Link dotfiles
+  hosts: localhost
+  gather_facts: no
+  collections: 
+    - ansible.builtin
+  tasks:
+    - name: Link Bash config files
+      block:
+        - name: Link .bashrc
+          file:
+            path: ~/.bashrc
+            state: link
+            force: yes
+            src: "{{playbook_dir}}/dotfiles/.bashrc"
+
+        - name: Link .bash_profile
+          file:
+            path: ~/.bash_profile
+            state: link
+            force: yes
+            src: "{{playbook_dir}}/dotfiles/.bash_profile"
+
+        - name: Source .bash_profile
+          shell: source ~/.bash_profile
+          changed_when: false
