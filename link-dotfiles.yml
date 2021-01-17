@@ -24,3 +24,14 @@
         - name: Source .bash_profile
           shell: source ~/.bash_profile
           changed_when: false
+
+        - name: Info
+          debug:
+            msg: "MAKE SURE TO SOURCE ~/.bash_profile"
+
+    - name: Link .vimrc
+      file:
+        path: ~/.vim/vimrc
+        state: link
+        force: yes
+        src: "{{playbook_dir}}/dotfiles/.vimrc"
