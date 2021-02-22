@@ -21,10 +21,6 @@
             force: yes
             src: "{{playbook_dir}}/dotfiles/.bash_profile"
 
-        - name: Source .bash_profile
-          shell: source ~/.bash_profile
-          changed_when: false
-
         - name: Info
           debug:
             msg: "MAKE SURE TO SOURCE ~/.bash_profile"
